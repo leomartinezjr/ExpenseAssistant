@@ -7,7 +7,7 @@
 
 O **Smart Expense & Receipt Assistant** é um aplicativo iOS nativo premium de controle financeiro inteligente. Ele permite aos usuários gerenciar despesas manualmente e digitalizar recibos físicos usando **Inteligência Artificial Multimodal (Google Gemini)** de forma totalmente local e segura.
 
-Este projeto foi construído para servir como **portfólio técnico de nível sênior**, demonstrando as melhores práticas de engenharia de software no ecossistema da Apple, concorrência moderna, testes automatizados e integração de IA.
+Este projeto foi construído para demonstrar as melhores práticas de engenharia de software no ecossistema da Apple, concorrência moderna, testes automatizados e integração de IA.
 
 ---
 
