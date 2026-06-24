@@ -1,6 +1,15 @@
 import Foundation
 import Combine
 
+enum PeriodFilter: String, CaseIterable, Identifiable {
+    case day = "Hoje"
+    case week = "Semana"
+    case month = "Mês"
+    case all = "Tudo"
+    
+    var id: String { rawValue }
+}
+
 @MainActor
 final class ExpenseListViewModel: ObservableObject {
     @Published var expenses: [Expense] = []
@@ -9,8 +18,41 @@ final class ExpenseListViewModel: ObservableObject {
     @Published var showError = false
     @Published var analysisResult: ReceiptAnalysis? = nil
     
-    private let repository: ExpenseRepository
+    @Published var selectedPeriod: PeriodFilter = .all
+    @Published var selectedCategory: ExpenseCategory? = nil
+    
+    let repository: ExpenseRepository
     private let geminiService: GeminiServiceProtocol
+    
+    var expensesFilteredByPeriod: [Expense] {
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: Date())
+        
+        return expenses.filter { expense in
+            let expenseStartOfDay = calendar.startOfDay(for: expense.date)
+            switch selectedPeriod {
+            case .day:
+                return expenseStartOfDay == startOfToday
+            case .week:
+                guard let startOfWeek = calendar.date(byAdding: .day, value: -6, to: startOfToday) else { return true }
+                return expenseStartOfDay >= startOfWeek && expenseStartOfDay <= startOfToday
+            case .month:
+                guard let startOfMonth = calendar.date(byAdding: .day, value: -29, to: startOfToday) else { return true }
+                return expenseStartOfDay >= startOfMonth && expenseStartOfDay <= startOfToday
+            case .all:
+                return true
+            }
+        }
+    }
+    
+    var filteredExpenses: [Expense] {
+        expensesFilteredByPeriod.filter { expense in
+            if let category = selectedCategory {
+                return expense.expenseCategory == category
+            }
+            return true
+        }
+    }
     
     init(repository: ExpenseRepository, geminiService: GeminiServiceProtocol = GeminiService()) {
         self.repository = repository

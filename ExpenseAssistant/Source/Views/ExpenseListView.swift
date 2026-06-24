@@ -15,12 +15,12 @@ struct ExpenseListView: View {
     @State private var showingScanReceipt = false
     
     var totalAmount: Double {
-        viewModel.expenses.reduce(0.0) { $0 + $1.totalAmount }
+        viewModel.expensesFilteredByPeriod.reduce(0.0) { $0 + $1.totalAmount }
     }
     
     var categoryTotals: [CategoryTotal] {
         var totals: [ExpenseCategory: Double] = [:]
-        for expense in viewModel.expenses {
+        for expense in viewModel.expensesFilteredByPeriod {
             totals[expense.expenseCategory, default: 0.0] += expense.totalAmount
         }
         return totals.map { CategoryTotal(category: $0.key, amount: $0.value) }
@@ -43,6 +43,14 @@ struct ExpenseListView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 16) {
+                        NavigationLink {
+                            ChatAssistantView(repository: viewModel.repository)
+                        } label: {
+                            Image(systemName: "bubble.left.and.bubble.right.fill")
+                                .font(.system(size: 16))
+                                .foregroundStyle(LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        }
+                        
                         Button {
                             showingScanReceipt = true
                         } label: {
@@ -137,6 +145,15 @@ struct ExpenseListView: View {
     private var dashboardView: some View {
         ScrollView {
             VStack(spacing: 20) {
+                // Picker de Período Temporal
+                Picker("Período", selection: $viewModel.selectedPeriod) {
+                    ForEach(PeriodFilter.allCases) { filter in
+                        Text(filter.rawValue).tag(filter)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.top, 8)
                 
                 // Resumo Financeiro Card
                 VStack(spacing: 8) {
@@ -156,67 +173,116 @@ struct ExpenseListView: View {
                 .padding(.horizontal)
                 
                 // Gráfico Donut Chart
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Distribuição por Categoria")
-                        .font(.headline)
-                        .padding(.horizontal)
-                    
-                    HStack(spacing: 20) {
-                        Chart(categoryTotals) { item in
-                            SectorMark(
-                                angle: .value("Gasto", item.amount)
-                            )
-                            .foregroundStyle(item.category.color)
-                        }
-                        .frame(width: 140, height: 140)
+                if !categoryTotals.isEmpty {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Distribuição por Categoria")
+                            .font(.headline)
+                            .padding(.horizontal)
                         
-                        // Legendas com Porcentagem
-                        VStack(alignment: .leading, spacing: 8) {
-                            ForEach(categoryTotals) { item in
-                                HStack(spacing: 8) {
-                                    Circle()
-                                        .fill(item.category.color)
-                                        .frame(width: 8, height: 8)
-                                    Text(item.category.rawValue)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    Spacer()
-                                    Text(String(format: "R$ %.0f", item.amount))
-                                        .font(.caption)
-                                        .fontWeight(.semibold)
+                        HStack(spacing: 20) {
+                            Chart(categoryTotals) { item in
+                                SectorMark(
+                                    angle: .value("Gasto", item.amount),
+                                    innerRadius: .ratio(0.6),
+                                    angularInset: 1.5
+                                )
+                                .foregroundStyle(item.category.color)
+                                .opacity(viewModel.selectedCategory == nil || viewModel.selectedCategory == item.category ? 1.0 : 0.3)
+                            }
+                            .frame(width: 140, height: 140)
+                            
+                            // Legendas com Porcentagem
+                            VStack(alignment: .leading, spacing: 8) {
+                                ForEach(categoryTotals) { item in
+                                    Button {
+                                        withAnimation(.spring()) {
+                                            if viewModel.selectedCategory == item.category {
+                                                viewModel.selectedCategory = nil
+                                            } else {
+                                                viewModel.selectedCategory = item.category
+                                            }
+                                        }
+                                    } label: {
+                                        HStack(spacing: 8) {
+                                            Circle()
+                                                .fill(item.category.color)
+                                                .frame(width: 8, height: 8)
+                                            Text(item.category.rawValue)
+                                                .font(.caption)
+                                                .foregroundColor(viewModel.selectedCategory == nil || viewModel.selectedCategory == item.category ? .primary : .secondary)
+                                                .fontWeight(viewModel.selectedCategory == item.category ? .bold : .regular)
+                                            Spacer()
+                                            Text(String(format: "R$ %.0f", item.amount))
+                                                .font(.caption)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.primary)
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
                                 }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    .padding(.vertical, 20)
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .cornerRadius(20)
+                    .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 4)
+                    .padding(.horizontal)
+                }
+                
+                // Lista de Transações Recentes
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Lançamentos Recentes")
+                            .font(.headline)
+                        
+                        Spacer()
+                        
+                        if let selected = viewModel.selectedCategory {
+                            Button {
+                                withAnimation {
+                                    viewModel.selectedCategory = nil
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text(selected.rawValue)
+                                    Image(systemName: "xmark.circle.fill")
+                                }
+                                .font(.caption2)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(selected.color)
+                                .cornerRadius(12)
                             }
                         }
                     }
                     .padding(.horizontal)
-                }
-                .padding(.vertical, 20)
-                .background(Color(.secondarySystemGroupedBackground))
-                .cornerRadius(20)
-                .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 4)
-                .padding(.horizontal)
-                
-                // Lista de Transações Recentes
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Lançamentos Recentes")
-                        .font(.headline)
-                        .padding(.horizontal)
                     
-                    LazyVStack(spacing: 12) {
-                        ForEach(viewModel.expenses) { expense in
-                            expenseRow(for: expense)
-                                .contextMenu {
-                                    Button(role: .destructive) {
-                                        withAnimation {
-                                            viewModel.deleteExpense(expense)
+                    if viewModel.filteredExpenses.isEmpty {
+                        Text("Nenhuma despesa para este período ou categoria.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal)
+                            .padding(.top, 8)
+                    } else {
+                        LazyVStack(spacing: 12) {
+                            ForEach(viewModel.filteredExpenses) { expense in
+                                expenseRow(for: expense)
+                                    .contextMenu {
+                                        Button(role: .destructive) {
+                                            withAnimation {
+                                                viewModel.deleteExpense(expense)
+                                            }
+                                        } label: {
+                                            Label("Excluir", systemImage: "trash")
                                         }
-                                    } label: {
-                                        Label("Excluir", systemImage: "trash")
                                     }
-                                }
+                            }
                         }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
                 }
                 .padding(.bottom, 24)
             }

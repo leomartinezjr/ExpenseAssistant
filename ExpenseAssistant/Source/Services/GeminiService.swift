@@ -1,7 +1,15 @@
 import Foundation
 
+struct ExpenseDTO: Sendable, Codable {
+    let title: String
+    let amount: Double
+    let category: String
+    let date: String
+}
+
 protocol GeminiServiceProtocol: Sendable {
     func analyzeReceipt(text: String?, imageData: Data?, mimeType: String?) async throws -> ReceiptAnalysis
+    func sendChatMessage(history: [ChatMessage], currentExpenses: [ExpenseDTO], newPrompt: String) async throws -> String
 }
 
 enum GeminiError: Error, LocalizedError {
@@ -20,6 +28,20 @@ enum GeminiError: Error, LocalizedError {
         case .apiError(let msg): return "Erro retornado pela API do Gemini: \(msg)"
         }
     }
+}
+
+// Estrutura de resposta da API do Gemini
+private struct GeminiResponse: Decodable {
+    struct Candidate: Decodable {
+        struct Content: Decodable {
+            struct Part: Decodable {
+                let text: String
+            }
+            let parts: [Part]
+        }
+        let content: Content
+    }
+    let candidates: [Candidate]
 }
 
 final class GeminiService: GeminiServiceProtocol, @unchecked Sendable {
@@ -122,20 +144,6 @@ final class GeminiService: GeminiServiceProtocol, @unchecked Sendable {
             throw GeminiError.apiError("Erro HTTP \(httpResponse.statusCode)")
         }
         
-        // Decodificar a resposta do Gemini
-        struct GeminiResponse: Decodable {
-            struct Candidate: Decodable {
-                struct Content: Decodable {
-                    struct Part: Decodable {
-                        let text: String
-                    }
-                    let parts: [Part]
-                }
-                let content: Content
-            }
-            let candidates: [Candidate]
-        }
-        
         let geminiResponse: GeminiResponse
         do {
             geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
@@ -159,9 +167,103 @@ final class GeminiService: GeminiServiceProtocol, @unchecked Sendable {
         }
     }
     
+    func sendChatMessage(history: [ChatMessage], currentExpenses: [ExpenseDTO], newPrompt: String) async throws -> String {
+        let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !key.isEmpty, key != "SUA_API_KEY_AQUI" else {
+            throw GeminiError.missingApiKey
+        }
+        
+        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=\(key)") else {
+            throw GeminiError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // Formatar despesas para contextualizar o modelo
+        let expensesJsonString: String
+        if let data = try? JSONEncoder().encode(currentExpenses),
+           let json = String(data: data, encoding: .utf8) {
+            expensesJsonString = json
+        } else {
+            expensesJsonString = "[]"
+        }
+        
+        let systemPrompt = """
+        Você é o Coach Financeiro Inteligente do ExpenseAssistant.
+        O usuário tem as seguintes despesas cadastradas no banco de dados local:
+        \(expensesJsonString)
+        
+        Seu objetivo é responder perguntas de forma simpática, prestativa e profissional em Português.
+        Faça análises financeiras com base nas despesas acima, dê conselhos sobre economia e ajude-o a manter o orçamento.
+        Seja conciso nas respostas e mantenha um tom encorajador.
+        Se não houver despesas, informe o usuário amigavelmente e dê dicas gerais de finanças pessoais.
+        """
+        
+        var contents: [[String: Any]] = []
+        for message in history {
+            let role = message.sender == .user ? "user" : "model"
+            contents.append([
+                "role": role,
+                "parts": [
+                    ["text": message.content]
+                ]
+            ])
+        }
+        
+        contents.append([
+            "role": "user",
+            "parts": [
+                ["text": newPrompt]
+            ]
+        ])
+        
+        let systemInstruction: [String: Any] = [
+            "parts": [
+                ["text": systemPrompt]
+            ]
+        ]
+        
+        let requestBody: [String: Any] = [
+            "systemInstruction": systemInstruction,
+            "contents": contents
+        ]
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw GeminiError.emptyResponse
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            if let errorJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errorObj = errorJson["error"] as? [String: Any],
+               let errorMessage = errorObj["message"] as? String {
+                throw GeminiError.apiError(errorMessage)
+            }
+            throw GeminiError.apiError("Erro HTTP \(httpResponse.statusCode)")
+        }
+        
+        let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
+        guard let responseText = geminiResponse.candidates.first?.content.parts.first?.text else {
+            throw GeminiError.emptyResponse
+        }
+        
+        return responseText
+    }
+    
     private func currentDateString() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: Date())
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
 }

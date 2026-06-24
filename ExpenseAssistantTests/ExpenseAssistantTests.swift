@@ -30,6 +30,9 @@ final class MockGeminiService: GeminiServiceProtocol, @unchecked Sendable {
     var mockResult: ReceiptAnalysis?
     var mockError: Error?
     
+    var mockChatResponse: String = "Resposta mockada"
+    var mockChatError: Error?
+    
     func analyzeReceipt(text: String?, imageData: Data?, mimeType: String?) async throws -> ReceiptAnalysis {
         if let error = mockError {
             throw error
@@ -38,6 +41,13 @@ final class MockGeminiService: GeminiServiceProtocol, @unchecked Sendable {
             return result
         }
         throw GeminiError.emptyResponse
+    }
+    
+    func sendChatMessage(history: [ChatMessage], currentExpenses: [ExpenseDTO], newPrompt: String) async throws -> String {
+        if let error = mockChatError {
+            throw error
+        }
+        return mockChatResponse
     }
 }
 
@@ -167,4 +177,92 @@ final class MockGeminiService: GeminiServiceProtocol, @unchecked Sendable {
         #expect(ExpenseCategory.from(stringValue: "Outros") == .others)
         #expect(ExpenseCategory.from(stringValue: "Qualquer Coisa") == .others)
     }
+    
+    // MARK: - Testes da Fase 3: Filtros e Chat
+    
+    @Test @MainActor func testExpenseFiltering() async throws {
+        let repo = MockExpenseRepository()
+        let vm = ExpenseListViewModel(repository: repo)
+        
+        let now = Date()
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: now)
+        
+        let todayExpense = Expense(storeName: "Hoje", totalAmount: 10.0, category: .food, date: startOfToday)
+        
+        let threeDaysAgo = calendar.date(byAdding: .day, value: -3, to: startOfToday)!
+        let weekExpense = Expense(storeName: "Semana", totalAmount: 20.0, category: .transport, date: threeDaysAgo)
+        
+        let fifteenDaysAgo = calendar.date(byAdding: .day, value: -15, to: startOfToday)!
+        let monthExpense = Expense(storeName: "Mês", totalAmount: 30.0, category: .leisure, date: fifteenDaysAgo)
+        
+        let fortyFiveDaysAgo = calendar.date(byAdding: .day, value: -45, to: startOfToday)!
+        let oldExpense = Expense(storeName: "Antigo", totalAmount: 40.0, category: .health, date: fortyFiveDaysAgo)
+        
+        vm.expenses = [todayExpense, weekExpense, monthExpense, oldExpense]
+        
+        // 1. Padrão: Tudo, Sem Filtro de Categoria
+        vm.selectedPeriod = .all
+        vm.selectedCategory = nil
+        #expect(vm.filteredExpenses.count == 4)
+        
+        // 2. Filtro: Hoje
+        vm.selectedPeriod = .day
+        #expect(vm.filteredExpenses.count == 1)
+        #expect(vm.filteredExpenses.first?.storeName == "Hoje")
+        
+        // 3. Filtro: Semana
+        vm.selectedPeriod = .week
+        #expect(vm.filteredExpenses.count == 2)
+        
+        // 4. Filtro: Mês
+        vm.selectedPeriod = .month
+        #expect(vm.filteredExpenses.count == 3)
+        
+        // 5. Filtro de Categoria: Transporte (com período Tudo)
+        vm.selectedPeriod = .all
+        vm.selectedCategory = .transport
+        #expect(vm.filteredExpenses.count == 1)
+        #expect(vm.filteredExpenses.first?.storeName == "Semana")
+    }
+    
+    @Test @MainActor func testChatAssistantSuccess() async throws {
+        let repo = MockExpenseRepository()
+        let gemini = MockGeminiService()
+        let vm = ChatAssistantViewModel(repository: repo, geminiService: gemini)
+        
+        // Primeira mensagem é a de boas-vindas do coach
+        #expect(vm.messages.count == 1)
+        #expect(vm.messages.first?.sender == .assistant)
+        
+        gemini.mockChatResponse = "Seus gastos parecem equilibrados."
+        
+        await vm.sendMessage("Estou gastando muito?")
+        
+        #expect(vm.messages.count == 3)
+        #expect(vm.messages[1].sender == .user)
+        #expect(vm.messages[1].content == "Estou gastando muito?")
+        #expect(vm.messages[2].sender == .assistant)
+        #expect(vm.messages[2].content == "Seus gastos parecem equilibrados.")
+        #expect(!vm.isLoading)
+        #expect(!vm.showError)
+    }
+    
+    @Test @MainActor func testChatAssistantFailure() async throws {
+        let repo = MockExpenseRepository()
+        let gemini = MockGeminiService()
+        let vm = ChatAssistantViewModel(repository: repo, geminiService: gemini)
+        
+        gemini.mockChatError = GeminiError.apiError("Chave de API inválida")
+        
+        await vm.sendMessage("Olá")
+        
+        #expect(vm.messages.count == 3)
+        #expect(vm.messages[2].sender == .assistant)
+        // A resposta de erro informada ao usuário
+        #expect(vm.messages[2].content.contains("Ops! Ocorreu um problema"))
+        #expect(vm.showError)
+        #expect(vm.errorMessage == "Falha ao obter resposta: Erro retornado pela API do Gemini: Chave de API inválida")
+    }
 }
+
