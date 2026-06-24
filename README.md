@@ -5,9 +5,9 @@
 [![SwiftData](https://img.shields.io/badge/SwiftData-Shared-purple.svg?style=flat)](https://developer.apple.com/documentation/swiftdata)
 [![WidgetKit](https://img.shields.io/badge/WidgetKit-Enabled-pink.svg?style=flat)](https://developer.apple.com/documentation/widgetkit)
 
-O **Smart Expense & Receipt Assistant** é um aplicativo iOS nativo premium de controle financeiro inteligente. Ele permite aos usuários gerenciar despesas manualmente e digitalizar recibos físicos usando **Inteligência Artificial Multimodal (Google Gemini)** de forma totalmente local e segura.
+O **Smart Expense & Receipt Assistant** é um aplicativo iOS nativo premium de controle financeiro inteligente. Ele permite aos usuários gerenciar despesas manualmente, digitalizar recibos físicos usando **Inteligência Artificial Multimodal (Google Gemini)** e obter orientações financeiras personalizadas através de um **Chat Assistente (IA Coach)** de forma local, rápida e segura.
 
-Este projeto foi construído para demonstrar as melhores práticas de engenharia de software no ecossistema da Apple, concorrência moderna, testes automatizados e integração de IA.
+Este projeto foi construído para servir como **portfólio técnico de nível sênior**, demonstrando as melhores práticas de engenharia de software no ecossistema da Apple, concorrência moderna, testes automatizados e integração prática de IA.
 
 ---
 
@@ -15,30 +15,32 @@ Este projeto foi construído para demonstrar as melhores práticas de engenharia
 
 Para um recrutador, este projeto serve como prova prática de proficiência nas seguintes áreas da plataforma Apple:
 
-### 1. Concorrência Moderna no Swift 6
+### 1. Concorrência Moderna & Segurança de Dados (Swift 6)
 * Utilização estrita de **`async/await`** para chamadas de rede sem bloqueios da Main Thread.
 * Configuração do compilador com flags de concorrência estrita (`-strict-concurrency=complete`).
-* Isolamento seguro de estados em threads secundárias ao lidar com buscas de banco de dados no Widget.
+* **Resolução de Data Race**: Mapeamento seguro de modelos do SwiftData (`Expense` - que por ser uma classe gerenciada de banco não é thread-safe) em estruturas de transferência de dados imutáveis e em conformidade com **`Sendable`** (`ExpenseDTO`) antes de cruzar as fronteiras assíncronas de isolamento de atores.
+* Isolamento seguro de estados em threads secundárias ao lidar com buscas de banco de dados na timeline do Widget.
 
-### 2. Integração com Inteligência Artificial (Gemini REST Client)
+### 2. Integração Conversacional com Inteligência Artificial
 * Integração direta com a API REST do **Gemini** usando `URLSession` nativa, evitando bibliotecas externas pesadas e garantindo performance superior.
-* Uso de **Structured Outputs** (`responseSchema`) para forçar a IA a responder em um formato JSON previsível e estrito.
-* Processamento **multimodal**: conversão de fotos de recibos em Base64 enviadas diretamente à IA para análise e preenchimento automático.
+* **[Novo] Chat IA Coach**: Canal conversacional interativo onde o usuário envia perguntas e a IA atua como assistente pessoal de gastos. O histórico de mensagens e os gastos reais da base de dados do usuário são formatados e injetados de forma dinâmica no contexto do modelo para gerar respostas analíticas e sugestões de economia exatas.
+* **Structured Outputs** (`responseSchema`): Uso da funcionalidade nativa do Gemini para obter respostas estruturadas em JSON estrito durante a digitalização de notas.
+* **Multimodalidade**: Transmissão de imagens de recibos convertidas em Base64 diretamente nas payloads das chamadas.
 
 ### 3. Persistência Compartilhada (SwiftData + App Groups)
 * Banco de dados local utilizando **SwiftData** (`@Model` e `ModelContext`).
 * Criação de um repositório abstrato via protocolos para isolar a camada de dados e permitir testes unitários mockados.
 * Armazenamento configurado em um **App Group** compartilhado (`group.com.leomartinez.ExpenseAssistant`) que permite ao app principal e ao widget consumirem a mesma base de dados.
 
-### 4. SwiftUI Avançado & Animações Premium
+### 4. SwiftUI Avançado & Interatividade no Dashboard
 * **Efeito Laser de Scanner**: Animação personalizada de digitalização (`LaserScannerView`) com degradês pulsantes, efeitos de brilho (*glow*) e deslocamentos de varredura infinita para uma experiência de usuário de alto nível (*wow factor*).
-* Legenda interativa e gráficos de rosca dinâmicos utilizando o framework nativo **Swift Charts**.
-* Fluxo de navegação moderno usando `NavigationStack` e transições de tela suaves.
+* **Filtros Temporais por Segmentação**: Inclusão de controle de tempo (Hoje, Semana, Mês, Tudo) no topo do painel que recalcula os gastos e atualiza o gráfico de rosca de forma reativa.
+* **Gráficos Dinâmicos e Interatividade**: Utilização do **Swift Charts** com legenda clicável que permite ao usuário tocar em uma categoria específica e destacar/filtrar a lista de transações recentes associadas em tempo real.
 
 ### 5. WidgetKit (Extensão de Tela Inicial)
 * Criação de um widget nativo de tela inicial (`systemSmall`) para acompanhamento rápido de gastos diários.
-* Atualização em segundo plano via `TimelineProvider` com consultas performáticas ao SwiftData compartilhado.
-* Exibição visual da meta diária com uma barra de progresso em gradiente dinâmico.
+* Consulta ao SwiftData compartilhado em threads de segundo plano no `TimelineProvider`.
+* Barra de progresso visual mostrando a porcentagem da meta de limite diário (R$ 150) com gradiente dinâmico.
 
 ### 6. Ferramental de Build Moderno (XcodeGen)
 * Toda a estrutura do Xcode (`.xcodeproj`) é gerada dinamicamente via arquivo de especificação **`project.yml`**.
@@ -46,7 +48,7 @@ Para um recrutador, este projeto serve como prova prática de proficiência nas 
 
 ### 7. Testes Unitários de Alta Performance (Swift Testing)
 * Suíte de testes criada com o moderno framework **Swift Testing** (`@Test` e `@Suite`).
-* Cobertura de 100% das regras de negócio críticas (ViewModels, decodificação robusta de datas UTC, tratamento de erros de API do Gemini e comportamento do repositório).
+* Cobertura completa de ViewModel principal, ViewModel de Chat, parsers robustos de fuso horário e comportamento de erros de rede de IA.
 
 ---
 
@@ -54,11 +56,11 @@ Para um recrutador, este projeto serve como prova prática de proficiência nas 
 
 O app segue o padrão **MVVM (Model-View-ViewModel)** com separação estrita de responsabilidades:
 
-* **Model**: Representação das entidades (`Expense` e `ReceiptAnalysis`).
-* **Repository**: Abstração do banco SwiftData via protocolo `ExpenseRepository` para testabilidade perfeita.
-* **Service**: Comunicação e encapsulamento das chamadas HTTP à API do Gemini (`GeminiService`).
-* **ViewModel**: Gerenciamento de estado, tratamentos assíncronos e validação prévia de dados (`ExpenseListViewModel`).
-* **Views**: Telas em SwiftUI focadas apenas em renderização de estado e interações do usuário.
+* **Model**: Representação das entidades (`Expense`, `ReceiptAnalysis` e `ChatMessage`).
+* **Repository**: Abstração do banco SwiftData via protocolo `ExpenseRepository`.
+* **Service**: Comunicação nativa à API do Gemini (`GeminiService`).
+* **ViewModel**: Gerenciamento de estado e concorrência (`ExpenseListViewModel` e `ChatAssistantViewModel`).
+* **Views**: Telas em SwiftUI (`ExpenseListView`, `ChatAssistantView`, etc.).
 
 ```mermaid
 graph TD
@@ -68,6 +70,9 @@ graph TD
     Repo -->|Persiste localmente| SwiftData[Shared SwiftData Container]
     Service -->|Chamada REST Multimodal| GeminiAPI[Gemini API]
     Widget[ExpenseWidget] -->|Lê Gastos do Dia| SwiftData
+    
+    ChatView[ChatAssistantView] -->|Interação de Chat| ChatVM[ChatAssistantViewModel]
+    ChatVM -->|Envia Chat + Histórico + DTOs| Service
 ```
 
 ---
@@ -80,7 +85,9 @@ A suíte de testes valida o comportamento do app sem realizar conexões de rede 
 * `testAddExpenseSuccess()` / `testDeleteExpenseSuccess()`
 * `testAnalyzeReceiptSuccess()` / `testAnalyzeReceiptFailure()`
 * `testDateParsing()` (garante que fusos horários locais não quebrem a data extraída pela IA)
-* `testCategoryParsing()` (valida o mapeamento tolerante a falhas de categorias escritas pela IA)
+* `testCategoryParsing()` (valida o mapeamento de strings para enums)
+* **`testExpenseFiltering()`** (valida filtros de tempo e de categorias dinâmicas)
+* **`testChatAssistantSuccess()`** / **`testChatAssistantFailure()`** (valida o fluxo de conversas do coach IA)
 
 ---
 
@@ -88,7 +95,7 @@ A suíte de testes valida o comportamento do app sem realizar conexões de rede 
 
 1. Certifique-se de ter o **XcodeGen** instalado (`brew install xcodegen`).
 2. Clone o repositório.
-3. Crie um arquivo chamado **`Secrets.xcconfig`** na raiz do projeto (ele já está listado no `.gitignore` para proteção):
+3. Crie um arquivo chamado **`Secrets.xcconfig`** na raiz do projeto:
    ```text
    GEMINI_API_KEY = SUA_API_KEY_AQUI
    ```
