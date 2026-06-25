@@ -30,6 +30,10 @@ struct Provider: TimelineProvider {
         let config: ModelConfiguration
         if let databaseURL = databaseURL {
             config = ModelConfiguration(url: databaseURL)
+            
+            // Habilita a criptografia nativa do iOS no arquivo do banco de dados quando bloqueado
+            let attributes: [FileAttributeKey: Any] = [.protectionKey: FileProtectionType.complete]
+            try? FileManager.default.setAttributes(attributes, ofItemAtPath: databaseURL.path)
         } else {
             config = ModelConfiguration()
         }

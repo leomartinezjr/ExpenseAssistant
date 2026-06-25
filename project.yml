@@ -12,7 +12,7 @@ targets:
       path: ExpenseAssistant/ExpenseAssistant.entitlements
     configFiles:
       Debug: Secrets.xcconfig
-      Release: Secrets.xcconfig
+      Release: Secrets.placeholder.xcconfig
     dependencies:
       - target: ExpenseWidget
     settings:
@@ -22,6 +22,7 @@ targets:
       INFOPLIST_KEY_CFBundleDisplayName: "ExpenseAssistant"
       MARKETING_VERSION: "1.0"
       CURRENT_PROJECT_VERSION: "1"
+      INFOPLIST_KEY_NSFaceIDUsageDescription: "O ExpenseAssistant precisa de permissão de FaceID para proteger seus dados financeiros."
       INFOPLIST_KEY_GEMINI_API_KEY: "$(GEMINI_API_KEY)"
   ExpenseWidget:
     type: app-extension

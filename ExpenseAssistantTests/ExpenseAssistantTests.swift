@@ -264,5 +264,25 @@ final class MockGeminiService: GeminiServiceProtocol, @unchecked Sendable {
         #expect(vm.showError)
         #expect(vm.errorMessage == "Falha ao obter resposta: Erro retornado pela API do Gemini: Chave de API inválida")
     }
+    
+    // MARK: - Testes de Segurança (Fase 4)
+    
+    init() {
+        KeychainHelper.useInMemoryMock = true
+    }
+    
+    @Test func testKeychainHelperMocking() {
+        // Garantir que estamos usando mock limpo
+        KeychainHelper.delete(key: "test_key")
+        
+        #expect(KeychainHelper.read(key: "test_key") == nil)
+        
+        let success = KeychainHelper.save(key: "test_key", value: "secret_value")
+        #expect(success)
+        #expect(KeychainHelper.read(key: "test_key") == "secret_value")
+        
+        KeychainHelper.delete(key: "test_key")
+        #expect(KeychainHelper.read(key: "test_key") == nil)
+    }
 }
 

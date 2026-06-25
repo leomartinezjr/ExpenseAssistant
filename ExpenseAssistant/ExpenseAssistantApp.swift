@@ -6,6 +6,15 @@ struct ExpenseAssistantApp: App {
     let container: ModelContainer
     let viewModel: ExpenseListViewModel
     
+    @State private var isApiKeyConfigured: Bool = {
+        if let key = KeychainHelper.read(key: "gemini_api_key"), !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return true
+        }
+        let bundleKey = Bundle.main.infoDictionary?["GEMINI_API_KEY"] as? String ?? ""
+        let cleanBundleKey = bundleKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !cleanBundleKey.isEmpty && cleanBundleKey != "SUA_API_KEY_AQUI"
+    }()
+    
     init() {
         do {
             // Obtém o diretório do App Group compartilhado
@@ -15,6 +24,14 @@ struct ExpenseAssistantApp: App {
             let config: ModelConfiguration
             if let databaseURL = databaseURL {
                 config = ModelConfiguration(url: databaseURL)
+                
+                // Cria o diretório se não existir
+                let directory = databaseURL.deletingLastPathComponent()
+                try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                
+                // Habilita a criptografia nativa do iOS no arquivo do banco de dados quando bloqueado
+                let attributes: [FileAttributeKey: Any] = [.protectionKey: FileProtectionType.complete]
+                try? FileManager.default.setAttributes(attributes, ofItemAtPath: databaseURL.path)
             } else {
                 config = ModelConfiguration()
             }
@@ -35,7 +52,13 @@ struct ExpenseAssistantApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ExpenseListView(viewModel: viewModel)
+            if isApiKeyConfigured {
+                BiometricLockView(content: ExpenseListView(viewModel: viewModel))
+            } else {
+                ApiKeySetupView {
+                    isApiKeyConfigured = true
+                }
+            }
         }
         .modelContainer(container)
     }

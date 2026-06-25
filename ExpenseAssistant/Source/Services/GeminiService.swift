@@ -52,7 +52,22 @@ final class GeminiService: GeminiServiceProtocol, @unchecked Sendable {
     }
     
     private var apiKey: String {
-        Bundle.main.infoDictionary?["GEMINI_API_KEY"] as? String ?? ""
+        // 1. Tentar ler do Keychain de forma segura
+        if let key = KeychainHelper.read(key: "gemini_api_key"), !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return key
+        }
+        
+        // 2. Fallback para ler do Bundle (Info.plist) para suporte retrocompatível e migração automática
+        let bundleKey = Bundle.main.infoDictionary?["GEMINI_API_KEY"] as? String ?? ""
+        let cleanBundleKey = bundleKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        if !cleanBundleKey.isEmpty && cleanBundleKey != "SUA_API_KEY_AQUI" {
+            // Migrar automaticamente para o Keychain para segurança
+            KeychainHelper.save(key: "gemini_api_key", value: cleanBundleKey)
+            return cleanBundleKey
+        }
+        
+        return ""
     }
     
     func analyzeReceipt(text: String?, imageData: Data?, mimeType: String?) async throws -> ReceiptAnalysis {

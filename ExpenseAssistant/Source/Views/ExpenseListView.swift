@@ -13,6 +13,7 @@ struct ExpenseListView: View {
     
     @State private var showingAddExpense = false
     @State private var showingScanReceipt = false
+    @State private var showingSettings = false
     
     var totalAmount: Double {
         viewModel.expensesFilteredByPeriod.reduce(0.0) { $0 + $1.totalAmount }
@@ -41,6 +42,16 @@ struct ExpenseListView: View {
             }
             .navigationTitle("Minhas Despesas")
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 16))
+                            .foregroundStyle(LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    }
+                }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 16) {
                         NavigationLink {
@@ -84,6 +95,9 @@ struct ExpenseListView: View {
             }
             .sheet(isPresented: $showingScanReceipt) {
                 ScanReceiptView(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
             }
             .onAppear {
                 viewModel.loadExpenses()
