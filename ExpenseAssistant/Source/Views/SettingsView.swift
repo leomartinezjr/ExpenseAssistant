@@ -29,25 +29,25 @@ struct SettingsView: View {
                 
                 Section(header: Text("Chave de API (Gemini)")) {
                     HStack {
-                        Label("Status da Chave", systemImage: "key.fill")
+                        Label("Chave Ativa", systemImage: "key.fill")
                             .foregroundColor(.purple)
                         Spacer()
-                        Text(hasKeyInKeychain ? "Configurada no Keychain" : "Não cadastrada")
+                        Text(hasKeyInKeychain ? "Personalizada (Keychain)" : "Padrão (Automática)")
                             .font(.subheadline)
-                            .foregroundColor(hasKeyInKeychain ? .green : .red)
+                            .foregroundColor(hasKeyInKeychain ? .green : .blue)
                             .fontWeight(.semibold)
                     }
                     
                     if isShowingKeyInput {
                         VStack(alignment: .leading, spacing: 8) {
-                            SecureField("Cole sua nova API Key", text: $apiKeyInput)
+                            SecureField("Cole sua chave personalizada", text: $apiKeyInput)
                                 .font(.system(.body, design: .monospaced))
                                 .padding(10)
                                 .background(Color(.systemGroupedBackground))
                                 .cornerRadius(8)
                             
                             HStack {
-                                Button("Salvar Nova Chave") {
+                                Button("Salvar Chave") {
                                     saveNewKey()
                                 }
                                 .font(.subheadline)
@@ -66,13 +66,13 @@ struct SettingsView: View {
                         }
                         .padding(.vertical, 4)
                     } else {
-                        Button(hasKeyInKeychain ? "Alterar API Key" : "Cadastrar API Key") {
+                        Button(hasKeyInKeychain ? "Alterar Chave Personalizada" : "Usar Chave Personalizada") {
                             isShowingKeyInput = true
                         }
                     }
                     
                     if hasKeyInKeychain {
-                        Button("Remover API Key do Keychain", role: .destructive) {
+                        Button("Restaurar Chave Padrão", role: .destructive) {
                             removeKey()
                         }
                     }

@@ -12,7 +12,7 @@ targets:
       path: ExpenseAssistant/ExpenseAssistant.entitlements
     configFiles:
       Debug: Secrets.xcconfig
-      Release: Secrets.placeholder.xcconfig
+      Release: Secrets.xcconfig
     dependencies:
       - target: ExpenseWidget
     settings:

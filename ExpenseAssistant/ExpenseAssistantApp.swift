@@ -6,15 +6,6 @@ struct ExpenseAssistantApp: App {
     let container: ModelContainer
     let viewModel: ExpenseListViewModel
     
-    @State private var isApiKeyConfigured: Bool = {
-        if let key = KeychainHelper.read(key: "gemini_api_key"), !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return true
-        }
-        let bundleKey = Bundle.main.infoDictionary?["GEMINI_API_KEY"] as? String ?? ""
-        let cleanBundleKey = bundleKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !cleanBundleKey.isEmpty && cleanBundleKey != "SUA_API_KEY_AQUI"
-    }()
-    
     init() {
         do {
             // Obtém o diretório do App Group compartilhado
@@ -52,13 +43,7 @@ struct ExpenseAssistantApp: App {
     
     var body: some Scene {
         WindowGroup {
-            if isApiKeyConfigured {
-                BiometricLockView(content: ExpenseListView(viewModel: viewModel))
-            } else {
-                ApiKeySetupView {
-                    isApiKeyConfigured = true
-                }
-            }
+            BiometricLockView(content: ExpenseListView(viewModel: viewModel))
         }
         .modelContainer(container)
     }
