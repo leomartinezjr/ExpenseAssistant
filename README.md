@@ -4,6 +4,8 @@
 [![iOS 17.0+](https://img.shields.io/badge/iOS-17.0+-blue.svg?style=flat)](https://developer.apple.com/ios/)
 [![SwiftData](https://img.shields.io/badge/SwiftData-Shared-purple.svg?style=flat)](https://developer.apple.com/documentation/swiftdata)
 [![WidgetKit](https://img.shields.io/badge/WidgetKit-Enabled-pink.svg?style=flat)](https://developer.apple.com/documentation/widgetkit)
+[![Keychain](https://img.shields.io/badge/Keychain-Secured-lightgrey.svg?style=flat)](#)
+[![FaceID](https://img.shields.io/badge/FaceID-Protected-green.svg?style=flat)](#)
 
 O **Smart Expense & Receipt Assistant** é um aplicativo iOS nativo premium de controle financeiro inteligente. Ele permite aos usuários gerenciar despesas manualmente, digitalizar recibos físicos usando **Inteligência Artificial Multimodal (Google Gemini)** e obter orientações financeiras personalizadas através de um **Chat Assistente (IA Coach)** de forma local, rápida e segura.
 
@@ -50,6 +52,12 @@ Para um recrutador, este projeto serve como prova prática de proficiência nas 
 * Suíte de testes criada com o moderno framework **Swift Testing** (`@Test` e `@Suite`).
 * Cobertura completa de ViewModel principal, ViewModel de Chat, parsers robustos de fuso horário e comportamento de erros de rede de IA.
 
+### 8. Segurança & Conformidade (OWASP MASVS)
+* **Proteção por Biometria (FaceID/Passcode)**: Tela de bloqueio biométrico (`BiometricLockView` via `LocalAuthentication`) para proteger o dashboard e dados financeiros confidenciais ao abrir ou retomar o app.
+* **Armazenamento Seguro (Keychain)**: Integração com o framework nativo `Security` (`KeychainHelper`) para gerenciar a chave de API do Gemini de forma segura no Keychain do iOS (criptografia AES-256 baseada em hardware), suportando personalização opcional do usuário.
+* **Criptografia em Repouso**: Configuração de proteção de arquivo de banco de dados do SwiftData (`.complete` file protection) no nível de sistema operacional (`FileManager`) tanto para o app quanto para o Widget.
+* **Resolução Segura de Chaves**: Inicialização e resolução automática de chaves (auto-migração do `.xcconfig` local para o Keychain) sem expor senhas em texto puro no plist.
+
 ---
 
 ## 🛠️ Arquitetura do Projeto
@@ -88,6 +96,7 @@ A suíte de testes valida o comportamento do app sem realizar conexões de rede 
 * `testCategoryParsing()` (valida o mapeamento de strings para enums)
 * **`testExpenseFiltering()`** (valida filtros de tempo e de categorias dinâmicas)
 * **`testChatAssistantSuccess()`** / **`testChatAssistantFailure()`** (valida o fluxo de conversas do coach IA)
+* **`testKeychainHelperMocking()`** (valida o isolamento e persistência simulada do Keychain usando mocks sem dependência de hardware real)
 
 ---
 
