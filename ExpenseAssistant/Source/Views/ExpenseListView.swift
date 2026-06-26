@@ -14,6 +14,7 @@ struct ExpenseListView: View {
     @State private var showingAddExpense = false
     @State private var showingScanReceipt = false
     @State private var showingSettings = false
+    @Namespace private var navigationNamespace
     
     var totalAmount: Double {
         viewModel.expensesFilteredByPeriod.reduce(0.0) { $0 + $1.totalAmount }
@@ -30,7 +31,7 @@ struct ExpenseListView: View {
     
     var body: some View {
         NavigationStack {
-            ZStack {
+            ZStack(alignment: .bottom) {
                 Color(.systemGroupedBackground)
                     .ignoresSafeArea()
                 
@@ -38,6 +39,10 @@ struct ExpenseListView: View {
                     emptyStateView
                 } else {
                     dashboardView
+                    
+                    // Floating Liquid Glass Toolbar
+                    FloatingPeriodPicker(selectedPeriod: $viewModel.selectedPeriod)
+                        .padding(.bottom, 16)
                 }
             }
             .navigationTitle("Minhas Despesas")
@@ -56,11 +61,13 @@ struct ExpenseListView: View {
                     HStack(spacing: 16) {
                         NavigationLink {
                             ChatAssistantView(repository: viewModel.repository)
+                                .applyZoomTransition(id: "chat_transition_id", namespace: navigationNamespace)
                         } label: {
                             Image(systemName: "bubble.left.and.bubble.right.fill")
                                 .font(.system(size: 16))
                                 .foregroundStyle(LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
                         }
+                        .applyMatchedTransitionSource(id: "chat_transition_id", namespace: navigationNamespace)
                         
                         Button {
                             showingScanReceipt = true
@@ -159,15 +166,8 @@ struct ExpenseListView: View {
     private var dashboardView: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Picker de Período Temporal
-                Picker("Período", selection: $viewModel.selectedPeriod) {
-                    ForEach(PeriodFilter.allCases) { filter in
-                        Text(filter.rawValue).tag(filter)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-                .padding(.top, 8)
+                Spacer()
+                    .frame(height: 8)
                 
                 // Resumo Financeiro Card
                 VStack(spacing: 8) {
@@ -298,7 +298,7 @@ struct ExpenseListView: View {
                         .padding(.horizontal)
                     }
                 }
-                .padding(.bottom, 24)
+                .padding(.bottom, 80)
             }
             .padding(.vertical)
         }
@@ -344,6 +344,74 @@ struct ExpenseListView: View {
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(14)
         .shadow(color: Color.black.opacity(0.02), radius: 4, x: 0, y: 2)
+    }
+}
+
+// MARK: - Componentes de Design Premium (Fase 5)
+
+struct FloatingPeriodPicker: View {
+    @Binding var selectedPeriod: PeriodFilter
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(PeriodFilter.allCases) { filter in
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                        selectedPeriod = filter
+                    }
+                } label: {
+                    Text(filter.rawValue)
+                        .font(.system(.subheadline, design: .rounded))
+                        .fontWeight(selectedPeriod == filter ? .bold : .medium)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .foregroundColor(selectedPeriod == filter ? .white : .primary)
+                        .background(
+                            Group {
+                                if selectedPeriod == filter {
+                                    LinearGradient(
+                                        colors: [.blue, .purple],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                } else {
+                                    Color.clear
+                                }
+                            }
+                        )
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(5)
+        .background(.ultraThinMaterial)
+        .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .stroke(.white.opacity(0.2), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 4)
+    }
+}
+
+extension View {
+    @ViewBuilder
+    func applyZoomTransition(id: AnyHashable, namespace: Namespace.ID) -> some View {
+        if #available(iOS 18.0, *) {
+            self.navigationTransition(.zoom(sourceID: id, in: namespace))
+        } else {
+            self
+        }
+    }
+    
+    @ViewBuilder
+    func applyMatchedTransitionSource(id: AnyHashable, namespace: Namespace.ID) -> some View {
+        if #available(iOS 18.0, *) {
+            self.matchedTransitionSource(id: id, in: namespace)
+        } else {
+            self
+        }
     }
 }
 

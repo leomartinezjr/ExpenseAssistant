@@ -35,8 +35,6 @@ struct ChatAssistantView: View {
                 }
             }
             
-            Divider()
-            
             // Barra de entrada
             inputBar
         }
@@ -52,7 +50,7 @@ struct ChatAssistantView: View {
                 }
             }
         }
-        .background(Color(.systemGroupedBackground))
+        .background(LiquidGlassBackgroundView())
     }
     
     // Balão de Mensagem
@@ -75,11 +73,20 @@ struct ChatAssistantView: View {
                                 endPoint: .bottomTrailing
                             )
                         } else {
-                            Color(.secondarySystemGroupedBackground)
+                            Color.clear
+                                .background(.ultraThinMaterial)
                         }
                     }
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(
+                    Group {
+                        if !isUser {
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .stroke(.white.opacity(0.18), lineWidth: 1)
+                        }
+                    }
+                )
                 .shadow(color: Color.black.opacity(isUser ? 0.1 : 0.02), radius: 3, x: 0, y: 1)
                 .frame(maxWidth: 280, alignment: isUser ? .trailing : .leading)
             
@@ -109,8 +116,12 @@ struct ChatAssistantView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(Color(.secondarySystemGroupedBackground))
+            .background(.ultraThinMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(.white.opacity(0.18), lineWidth: 1)
+            )
             
             Spacer()
         }
@@ -124,8 +135,12 @@ struct ChatAssistantView: View {
                 .font(.system(.body, design: .rounded))
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(Color(.secondarySystemGroupedBackground))
+                .background(.ultraThinMaterial)
                 .cornerRadius(20)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(.white.opacity(0.15), lineWidth: 1)
+                )
                 .focused($isInputFocused)
                 .disabled(viewModel.isLoading)
             
@@ -153,7 +168,13 @@ struct ChatAssistantView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
-        .background(Color(.systemBackground))
+        .background(.ultraThinMaterial)
+        .overlay(
+            Rectangle()
+                .frame(height: 1)
+                .foregroundColor(.white.opacity(0.15)),
+            alignment: .top
+        )
     }
     
     private func scrollToLastMessage(with proxy: ScrollViewProxy) {

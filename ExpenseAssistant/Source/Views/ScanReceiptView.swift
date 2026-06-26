@@ -258,6 +258,7 @@ struct ScanReceiptView: View {
                             
                             Button {
                                 viewModel.confirmAnalysis(rawText: inputText.isEmpty ? "Recibo carregado por imagem" : inputText)
+                                HapticManager.playSuccess()
                                 dismiss()
                             } label: {
                                 Text("Confirmar e Salvar")
@@ -299,6 +300,12 @@ struct ScanReceiptView: View {
                 imageData: selectedImageData,
                 mimeType: "image/jpeg"
             )
+            
+            if viewModel.analysisResult != nil {
+                HapticManager.playSuccess()
+            } else if viewModel.showError {
+                HapticManager.playError()
+            }
         }
     }
 }
@@ -313,6 +320,9 @@ struct ScanReceiptView: View {
 
 struct LaserScannerView: View {
     @State private var animate = false
+    
+    // Timer para sincronizar cliques hápticos a cada segundo de varredura
+    private let timer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
     
     var body: some View {
         GeometryReader { geometry in
@@ -340,6 +350,28 @@ struct LaserScannerView: View {
                     }
             }
         }
+        .onReceive(timer) { _ in
+            HapticManager.playSelection()
+        }
+    }
+}
+
+// MARK: - Haptic Manager Wrapper (Fase 5)
+
+struct HapticManager {
+    static func playSelection() {
+        let generator = UISelectionFeedbackGenerator()
+        generator.selectionChanged()
+    }
+    
+    static func playSuccess() {
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+    }
+    
+    static func playError() {
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.error)
     }
 }
 
