@@ -6,6 +6,8 @@
 [![WidgetKit](https://img.shields.io/badge/WidgetKit-Enabled-pink.svg?style=flat)](https://developer.apple.com/documentation/widgetkit)
 [![Keychain](https://img.shields.io/badge/Keychain-Secured-lightgrey.svg?style=flat)](#)
 [![FaceID](https://img.shields.io/badge/FaceID-Protected-green.svg?style=flat)](#)
+[![Liquid Glass](https://img.shields.io/badge/Liquid--Glass-Enabled-cyan.svg?style=flat)](#)
+[![Haptics](https://img.shields.io/badge/Haptics-Sincronizados-lightgrey.svg?style=flat)](#)
 
 O **Smart Expense & Receipt Assistant** é um aplicativo iOS nativo premium de controle financeiro inteligente. Ele permite aos usuários gerenciar despesas manualmente, digitalizar recibos físicos usando **Inteligência Artificial Multimodal (Google Gemini)** e obter orientações financeiras personalizadas através de um **Chat Assistente (IA Coach)** de forma local, rápida e segura.
 
@@ -36,7 +38,10 @@ Para um recrutador, este projeto serve como prova prática de proficiência nas 
 
 ### 4. SwiftUI Avançado & Interatividade no Dashboard
 * **Efeito Laser de Scanner**: Animação personalizada de digitalização (`LaserScannerView`) com degradês pulsantes, efeitos de brilho (*glow*) e deslocamentos de varredura infinita para uma experiência de usuário de alto nível (*wow factor*).
-* **Filtros Temporais por Segmentação**: Inclusão de controle de tempo (Hoje, Semana, Mês, Tudo) no topo do painel que recalcula os gastos e atualiza o gráfico de rosca de forma reativa.
+* **[Novo] Efeito Liquid Glass**: Fundo dinâmico (`LiquidGlassBackgroundView`) com gradientes fluidos e orgânicos que se movem de forma animada por trás de uma camada translúcida (`.ultraThinMaterial`) com bordas especulares no Chat com IA.
+* **[Novo] Toolbar de Filtros Flutuante**: O menu de períodos do Dashboard foi remodelado como uma cápsula flutuante de vidro líquido com desfoque de fundo reativo à rolagem de transações.
+* **[Novo] Transições de Zoom (iOS 18)**: Navegação elástica nativa de Zoom para transição do Dashboard ao Chat com IA, implementada com fallback seguro para iOS 17.
+* **[Novo] Integração Háptica (Haptic Feedback)**: Sincronização de toques táteis físicos (`UISelectionFeedbackGenerator` e `UINotificationFeedbackGenerator`) integrados no ritmo do laser de digitalização e nas notificações de sucesso/erro da IA.
 * **Gráficos Dinâmicos e Interatividade**: Utilização do **Swift Charts** com legenda clicável que permite ao usuário tocar em uma categoria específica e destacar/filtrar a lista de transações recentes associadas em tempo real.
 
 ### 5. WidgetKit (Extensão de Tela Inicial)
